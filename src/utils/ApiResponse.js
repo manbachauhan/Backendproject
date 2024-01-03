@@ -7,3 +7,5 @@ class ApiResponce{
         this.success=statusCode<400
     }
 }
+
+export { ApiResponce } 
