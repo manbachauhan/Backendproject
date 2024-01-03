@@ -8,8 +8,8 @@ app.use(cors({   // use for middlware
     Credentials:true
 }))
 
-app.use(express.json({limit:"16kb"}))  // limit defined for json data configuration
-app.use(express.urlencoded({extended:true , limit:"16kb"}))  // configuration for url decode 
+app.use(express.json({limit:"26kb"}))  // limit defined for json data configuration
+app.use(express.urlencoded({extended:true , limit:"86kb"}))  // configuration for url decode 
 app.use(express.static("public"))  // configuration for public assest like images,favicon etc
 app.use(cookieParser())  // secure cookie configuration
 

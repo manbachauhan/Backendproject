@@ -1,7 +1,7 @@
 const asyncHandler=(requestHandler)=>{  // for the utilities purpose a
-    return ((req,res,next)=>{
+    return (req,res,next)=>{
         Promise.resolve(requestHandler(req,res,next)).catch((err)=> next(err))
-    })
+    }
 
 }
 export { asyncHandler }
@@ -23,3 +23,4 @@ export { asyncHandler }
 //          })
 //     }
 // }
+// export { asyncHandler }

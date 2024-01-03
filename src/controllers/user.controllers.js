@@ -19,68 +19,70 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     //  check user already exits or not through email and username
-    const existUser= User.findOne({
-        $or:[{username},{email}]
+    const existUser = await User.findOne({
+        $or: [{ username }, { email }]
     })
 
     if (existUser) {
 
-        throw new ApiError(409," User with mail and username  already exists")
-        
+        throw new ApiError(409, " User with mail and username  already exists")
+
     }
 
 
     // check image and check avatar 
 
-    const avatarLocalpath=req.files?.avtar[0]?.path
-    const coverImageLocalpath=req.files?.coverImage[0]?.path
- 
-    if (!avatarLocalpath) {
-        throw new ApiError(400," Avtar file is required")
-        
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    console.log(avatarLocalPath)
+    const coverImageLocalpath = req.files?.coverImage[0]?.path;
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, " Avtar file is can required")
+
     }
 
     // upload on cloudinary of image
 
-    const avtar= await uploadOnCloudinary(avatarLocalpath)
-    const coverImage= await uploadOnCloudinary(coverImageLocalpath)
-
-    if(!avtar){
-        throw new ApiError(400, " Avtar file is required")
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const coverImage = await uploadOnCloudinary(coverImageLocalpath)
+    console.log(coverImage);
+    console.log(avatar)
+    if (!avatar) {
+        throw new ApiError(401, " Avtar file is required")
     }
 
     // create user
 
-    const user= await User.create(
+    const user = await User.create(
         {
             fullname,
-            avtar: avtar.url,
-            coverImage:coverImage.url || "",
+            avatar: avatar.url,
+            coverImage: coverImage?.url || "",
             email,
             password,
-            username:username.toLowerCase()
-           
+            username: username.toLowerCase()
+
         }
-       
+
     )
     console.log(user);
 
     //remove password and refreshtoken feild from response
 
-    const createUser= await User.findById(user._id).select(
+    const createUser = await User.findById(user._id).select(
         " -password -refreshToken "
     )
 
     // check user create
 
     if (!createUser) {
-        throw new ApiError(500,"Something went wrong while registering the user")
+        throw new ApiError(500, "Something went wrong while registering the user")
     }
 
     // return response
 
     return res.status(201).json(
-        new ApiResponce(200,createUser,"User Registered Successfully ")
+        new ApiResponce(200, createUser, "User Registered Successfully ")
     )
 })
 
