@@ -4,6 +4,30 @@ import { User } from '../models/user.models.js'
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponce } from '../utils/ApiResponse.js'
 
+
+
+
+
+//  generate access and refresh token
+
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+
+        const user = await User.findById(userId)
+
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        user.save({ validateBeforeSave: false })
+
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating Access and Refresh Token")
+    }
+
+}
 const registerUser = asyncHandler(async (req, res) => {
 
     // step 1 get user details from frontend
@@ -37,9 +61,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // const coverImageLocalpath = req.files?.coverImage[0]?.path;
 
     let coverImageLocalpath;
-    if(req.files && Array.isArray(req.files.coverImage)&& req.files.coverImage.length>0)
-    {
-         coverImageLocalpath=req.files.coverImage[0].path
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalpath = req.files.coverImage[0].path
     }
 
 
@@ -94,4 +117,104 @@ const registerUser = asyncHandler(async (req, res) => {
 })
 
 
-export { registerUser } 
+// login users
+
+
+const loginUser = asyncHandler(async (req, res) => {
+
+    // 1 . request boy to get Data
+    const { username, email, password } = req.body
+
+    // find username or email
+
+    if (!username || !email) {
+        throw new ApiError(400, "Username or email is required ")
+
+    }
+
+    // find user
+
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not found")
+    }
+
+    // check password
+
+    const isPasswordValid = await user.isPasswordCorrect(password)  // this method define in model
+
+    if (!isPasswordValid) {
+
+        throw new ApiError(400, "Password is required")
+
+    }
+
+    // access and refresh token
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._Id)
+
+    const loggedInUser = await User.findById(user._Id).select(
+        "-password -refreshToken"
+    )
+
+    // cookies
+
+    const option = {
+        httpOnly: true,
+        secure: true
+    }
+
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, option)
+        .cookie("refreshToken", refreshToken, option)
+        .json(
+            200,
+            {
+                user: loggedInUser, accessToken, refreshToken
+
+            },
+            "User LoggedIn Successfully "
+        )
+
+
+})
+
+const logoutUser = asyncHandler(async (req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+
+    )
+    
+    const option = {
+        httpOnly: true,
+        secure: true
+    }
+
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",option)
+    .clearCookie("refreshToken", option)
+    .json(new ApiResponce(200,{},"User Logged Out Successfully"))
+})
+
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+
+} 
